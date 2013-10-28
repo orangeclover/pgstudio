@@ -1,0 +1,46 @@
+apply plugin: 'war'
+apply plugin: 'jetty'
+
+war {
+    baseName = 'pgstudio'
+    archiveName = "pgstudio.war"
+    from 'war' 
+}
+httpPort = 8080
+stopPort = 9451
+stopKey = 'foo'
+
+
+def zipFile =''
+task downloadZip(type: MyDownload) {
+    sourceUrl = 'http://www.postgresqlstudio.org/?ddownload=839'
+    target = file("${temporaryDir}/pgstudio.war")
+    zipFile = target
+}
+
+class MyDownload extends DefaultTask {
+    @Input
+    String sourceUrl
+
+    @OutputFile
+    File target
+
+    @TaskAction
+    void download() {
+       ant.get(src: sourceUrl, dest: target)
+    }
+}
+
+task unzip(type: Copy) {
+    def outputDir = file("build/libs")
+    from zipTree(zipFile)
+    into outputDir
+}
+
+task deploy {
+    dependsOn downloadZip,unzip
+}
+task warRun {
+    war.enabled = false
+    dependsOn jettyRunWar
+}
